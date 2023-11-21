@@ -17,14 +17,29 @@ jobs:
         os: [ ubuntu-latest, macos-latest]
         python-version: [ 3.8, 3.9, "3.10", 3.11 ]
     steps:
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: mamba-org/setup-micromamba@v1
+      name: Install dependencies
       with:
-        auto-update-conda: true
-        python-version: "3.7"
+        micromamba-version: '1.5.3-0'
+        environment-name: ci
+        condarc: |
+          channels:
+            - conda-forge
+            - bioconda
+            - defaults
+        create-args: >-
+          python=${{ matrix.python-version }}
+          snakemake=7.32.4
+          mamba=1.5.3
+        init-shell: >-
+          bash
+        cache-environment: true
+        post-cleanup: 'all'
 
-    - name: Install dependencies
-      run: |
-        conda install -c conda-forge mamba=1.5.3 snakemake=7.32.4
+    # installs gnu-time on macos
+    - name: Install gnu-time
+      if: matrix.os == 'macos-latest'
+      run: brew install gnu-time
 
     - name: Check out code for the build
       uses: actions/checkout@v2
@@ -33,4 +48,6 @@ jobs:
 
     - name: Test
       run: |
+        micromamba activate ci
         make test
+      shell: bash -eol pipefail {0}
